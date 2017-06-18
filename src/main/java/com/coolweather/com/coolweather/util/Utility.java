@@ -1,6 +1,7 @@
 package com.coolweather.com.coolweather.util;
 
 import android.text.TextUtils;
+import android.util.Log;
 
 import com.coolweather.com.coolweather.db.City;
 import com.coolweather.com.coolweather.db.County;
@@ -15,6 +16,7 @@ import org.json.JSONObject;
  */
 
 public class Utility {
+    private static final String TAG = "Utility";
     /**
      * 解析并处理服务器返回的省级数据
      */
@@ -29,6 +31,7 @@ public class Utility {
                     province.setProvinceCode(provinceObject.getInt("id"));
                     province.save();
                 }
+                Log.i(TAG, "handleProviceResponse: 解析并处理服务器返回的省级数据");
                 return true;
             } catch (JSONException e) {
                 e.printStackTrace();
@@ -52,6 +55,7 @@ public class Utility {
                     city.setProvinceId(provinceId);
                     city.save();
                 }
+                Log.i(TAG, "handleCityResponse:解析并处理服务器返回的市级数据 ");
                 return true;
             } catch (JSONException e) {
                 e.printStackTrace();
@@ -65,8 +69,9 @@ public class Utility {
      * 解析并处理服务器返回的县级数据
      */
     public static boolean handleCountyResponse(String response, int cityId) {
-        if (TextUtils.isEmpty(response)) {
+        if (!TextUtils.isEmpty(response)) {
             try {
+                Log.i(TAG, "handleCountyResponse: response  :   "+response);
                 JSONArray allCounties = new JSONArray(response);
                 for (int i = 0; i < allCounties.length(); i++) {
                     JSONObject countyObject = allCounties.getJSONObject(i);
@@ -76,11 +81,13 @@ public class Utility {
                     county.setCityId(cityId);
                     county.save();
                 }
+                Log.i(TAG, "handleCountyResponse:解析并处理服务器返回的县级数据");
                 return true;
             } catch (JSONException e) {
                 e.printStackTrace();
             }
         }
+        Log.i(TAG, "handleCountyResponse:解析并处理服务器返回的县级数据失败");
         return false;
     }
 }

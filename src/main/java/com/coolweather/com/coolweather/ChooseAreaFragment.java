@@ -4,6 +4,7 @@ import android.app.ProgressDialog;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -30,9 +31,8 @@ import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.Response;
 
-import static android.R.attr.type;
-
 public class ChooseAreaFragment extends Fragment {
+    private  final String TAG="ChooseAreaFragment";
     public static final int LEVEL_PROVINCE = 0;
     public static final int LEVEL_CITY = 1;
     public static final int LEVEL_COUNTY = 2;
@@ -67,14 +67,14 @@ public class ChooseAreaFragment extends Fragment {
      */
     private int currentLevel;
 
-    @Nullable
     @Override
-    public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+    public View onCreateView(LayoutInflater inflater,ViewGroup container,Bundle savedInstanceState) {
+        Log.i(TAG, "-------------->onCreateView");
         View view = inflater.inflate(R.layout.choose_area, container, false);
         titleText = (TextView) view.findViewById(R.id.titl_text);
         backButton = (Button) view.findViewById(R.id.back_button);
         listView = (ListView) view.findViewById(R.id.list_view);
-        adapter = new ArrayAdapter<String>(getContext(), android.R.layout.simple_list_item_1, dataList);
+        adapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_list_item_1, dataList);
         listView.setAdapter(adapter);
         return view;
     }
@@ -100,7 +100,7 @@ public class ChooseAreaFragment extends Fragment {
                 if (currentLevel == LEVEL_COUNTY) {
                     queryCities();
                 } else if (currentLevel == LEVEL_CITY) {
-                    queryCounties();
+                    queryProvinces();
                 }
             }
         });
@@ -112,9 +112,11 @@ public class ChooseAreaFragment extends Fragment {
      * 查询全国的省，优先从数据库查询，如果没有再到服务器上查询
      */
     private void queryProvinces() {
+        Log.i(TAG, "queryProvinces: 查询全国的省");
         titleText.setText("中国");
         backButton.setVisibility(View.GONE);
         provinceList = DataSupport.findAll(Province.class);
+        Log.i(TAG, "after provinceList = DataSupport.findAll(Province.class);");
         if (provinceList.size() > 0) {
             dataList.clear();
             for (Province province : provinceList) {
@@ -132,10 +134,11 @@ public class ChooseAreaFragment extends Fragment {
     /**
      * 查询选中省内的市，优先从数据库查询，如果没有再到服务器上查询
      */
-    private void queryCounties() {
+    private void queryCities() {
+        Log.i(TAG, "queryCounties: 查询选中省内的市");
         titleText.setText(selectedProvince.getProvinceName());
         backButton.setVisibility(View.VISIBLE);
-        cityList = DataSupport.where("province=?", String.valueOf(selectedProvince.getId())).find(City.class);
+        cityList = DataSupport.where("provinceid= ?", String.valueOf(selectedProvince.getId())).find(City.class);
         if (cityList.size() > 0) {
             dataList.clear();
             for (City city : cityList) {
@@ -154,10 +157,11 @@ public class ChooseAreaFragment extends Fragment {
     /**
      * 查询选中的市内所有的县，优先从数据库查询，如果没有再到服务器上查询
      */
-    private void queryCities() {
+    private void queryCounties() {
+        Log.i(TAG, "queryCities: 查询选中的市内所有的县");
         titleText.setText(selectedCity.getCityName());
         backButton.setVisibility(View.VISIBLE);
-        countyList = DataSupport.where("cityname=?", String.valueOf(selectedCity.getId())).find(County.class);
+        countyList = DataSupport.where("cityid= ?", String.valueOf(selectedCity.getId())).find(County.class);
         if (countyList.size() > 0) {
             dataList.clear();
             for (County county : countyList) {
@@ -170,6 +174,7 @@ public class ChooseAreaFragment extends Fragment {
             int provinceCode = selectedProvince.getProvinceCode();
             int cityCode = selectedCity.getCityCode();
             String address = "http://guolin.tech/api/china/" + provinceCode + "/" + cityCode;
+            Log.i(TAG, "queryCounties: address：  " +address);
             queryFromServer(address, "county");
         }
 
@@ -179,14 +184,16 @@ public class ChooseAreaFragment extends Fragment {
      * 根据传入的地址和类型从服务器上查询省市数据
      *
      * @param address
-     * @param province
+     * @param type
      */
-    private void queryFromServer(String address, String province) {
+    private void queryFromServer(String address, final String type) {
         showProgressDialog();
+        Log.i(TAG, "queryFromServer: 从服务器查询");
         HttpUtil.sendOkhttpRequest(address, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
                 //通过runOnUiThread()方法回到主线程处理逻辑
+                Log.i(TAG, "onFailure: 查询失败");
                 getActivity().runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
@@ -195,9 +202,9 @@ public class ChooseAreaFragment extends Fragment {
                     }
                 });
             }
-
             @Override
             public void onResponse(Call call, Response response) throws IOException {
+                Log.i(TAG, "onResponse: 查询成功");
                 String responseText = response.body().string();
                 boolean result = false;
                 if ("province".equals(type)) {
@@ -205,6 +212,7 @@ public class ChooseAreaFragment extends Fragment {
                 } else if ("city".equals(type)) {
                     result = Utility.handleCityResponse(responseText, selectedProvince.getId());
                 } else if ("county".equals(type)) {
+                    Log.i(TAG, "onResponse: 查询县信息。。");
                     result = Utility.handleCountyResponse(responseText, selectedCity.getId());
                 }
                 if (result) {
@@ -230,7 +238,8 @@ public class ChooseAreaFragment extends Fragment {
     /**
      * 显示进度对话框
      */
-    private void closeProgressDialog() {
+    private void showProgressDialog() {
+        Log.i(TAG, "showProgressDialog: 显示对话框。");
         if (progressDialog == null) {
             progressDialog = new ProgressDialog(getActivity());
             progressDialog.setMessage("正在加载...");
@@ -242,7 +251,8 @@ public class ChooseAreaFragment extends Fragment {
     /**
      * 隐藏进度对话框
      */
-    private void showProgressDialog() {
+    private void closeProgressDialog() {
+        Log.i(TAG, "closeProgressDialog: 取消对话框。");
         if (progressDialog != null) {
             progressDialog.dismiss();
         }
