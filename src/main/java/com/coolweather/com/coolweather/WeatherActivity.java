@@ -1,5 +1,6 @@
 package com.coolweather.com.coolweather;
 
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Build;
@@ -22,6 +23,7 @@ import android.widget.Toast;
 import com.bumptech.glide.Glide;
 import com.coolweather.com.coolweather.gson.Forecast;
 import com.coolweather.com.coolweather.gson.Weather;
+import com.coolweather.com.coolweather.service.AutoUpdateService;
 import com.coolweather.com.coolweather.util.HttpUtil;
 import com.coolweather.com.coolweather.util.Utility;
 
@@ -48,7 +50,7 @@ public class WeatherActivity extends AppCompatActivity {
     public SwipeRefreshLayout swipeRefresh;
     public DrawerLayout drawerLayout;
     public Button navButton;
-
+    public String weatherId;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -82,7 +84,7 @@ public class WeatherActivity extends AppCompatActivity {
         });
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
         String weatherString = prefs.getString("weather", null);
-        final String weatherId;
+
         if (weatherString != null) {
             //有缓存时直接解析天气
             Weather weather = Utility.handleWeatherResponse(weatherString);
@@ -143,6 +145,7 @@ public class WeatherActivity extends AppCompatActivity {
      */
     public void requestWeather(final String weatherId) {
         String weatherUrl = "http://guolin.tech/api/weather?cityid=" + weatherId + "&key=5d8c25e5bf154daa905173c9280a5a76";
+        this.weatherId=weatherId;
         Log.i(TAG, "requestWeather: weatherUrl==" + weatherUrl);
         HttpUtil.sendOkhttpRequest(weatherUrl, new Callback() {
             @Override
@@ -171,6 +174,8 @@ public class WeatherActivity extends AppCompatActivity {
                             editor.apply();
                             Log.i(TAG, "run: weather" + weather);
                             showWeatherInfo(weather);
+                            Intent intent=new Intent(WeatherActivity.this,AutoUpdateService.class);
+                            startService(intent);
                         } else {
                             Toast.makeText(WeatherActivity.this, "获取天气信息失败！", Toast.LENGTH_LONG).show();
                         }
