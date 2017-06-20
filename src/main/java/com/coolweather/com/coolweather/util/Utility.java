@@ -6,6 +6,8 @@ import android.util.Log;
 import com.coolweather.com.coolweather.db.City;
 import com.coolweather.com.coolweather.db.County;
 import com.coolweather.com.coolweather.db.Province;
+import com.coolweather.com.coolweather.gson.Weather;
+import com.google.gson.Gson;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -89,5 +91,22 @@ public class Utility {
         }
         Log.i(TAG, "handleCountyResponse:解析并处理服务器返回的县级数据失败");
         return false;
+    }
+    /**
+     * 将返回的JSON数据解析成Weather实体类
+     * @param response
+     */
+    public static Weather handleWeatherResponse(String response) {
+        try {
+            Log.i(TAG, "handleWeatherResponse: 将返回的JSON数据解析成Weather实体类");
+            JSONObject jsonObject = new JSONObject(response);
+            JSONArray jsonArray = jsonObject.getJSONArray("HeWeather");
+            String weatherContent = jsonArray.getJSONObject(0).toString();
+            Log.i(TAG, "handleWeatherResponse: weatherContent:"+weatherContent);
+            return new Gson().fromJson(weatherContent, Weather.class);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+      return null;
     }
 }
